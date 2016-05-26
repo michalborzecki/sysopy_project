@@ -42,6 +42,8 @@ int ignore_close = 0;
 
 int main(int argc, char *argv[]) {
     struct sigaction sigchld_action, sigint_action;
+    memset(&sigchld_action, 0, sizeof sigchld_action);
+    memset(&sigint_action, 0, sizeof sigint_action);
     sigchld_action.sa_handler = sigchld_handler;
     sigaction(SIGCHLD, &sigchld_action, NULL);
     sigint_action.sa_handler = sigint_handler;
