@@ -21,10 +21,11 @@ int read_app_args(int app_id, char *main_path, wordexp_t *parsed_args);
 char *get_app_path(int app_id, char *main_path);
 
 void sigchld_handler(int signum) {}
+void sigint_handler(int signum);
 
 int apps_num = 1;
 char *apps_names[] = {
-        "some_name"
+        "Aircraft carrier"
 };
 
 char *apps_args[] = {
@@ -32,13 +33,17 @@ char *apps_args[] = {
 };
 
 char *apps_paths[] = {
-        "test/main"
+        "apps/aircraft_carrier/aircraft_main"
 };
+int ignore_close = 0;
 
 int main(int argc, char *argv[]) {
-    struct sigaction sigchld_action;
+    struct sigaction sigchld_action, sigint_action;
     sigchld_action.sa_handler = sigchld_handler;
     sigaction(SIGCHLD, &sigchld_action, NULL);
+    sigint_action.sa_handler = sigint_handler;
+    sigaction(SIGINT, &sigint_action, NULL);
+    sigaction(SIGTSTP, &sigint_action, NULL);
 
     char command_buffer[COMMAND_MAX_LENGTH];
     Command command = UNDEFINED;
@@ -46,6 +51,8 @@ int main(int argc, char *argv[]) {
     wordexp_t parsed_args;
     sigset_t mask, wait_mask, old_mask;
     sigfillset(&mask);
+    sigdelset(&mask, SIGTSTP);
+    sigdelset(&mask, SIGINT);
     sigfillset(&wait_mask);
     sigdelset(&wait_mask, SIGCHLD);
     sigprocmask(SIG_SETMASK, &mask, &old_mask);
@@ -71,7 +78,8 @@ int main(int argc, char *argv[]) {
                     printf("Incorrect arguments.\n");
                     break;
                 }
-
+                printf ("Args ok.\n");
+                fflush(stdout);
                 pid_t pid = fork();
                 if (pid < 0) {
                     printf("Error while creating new process occurred.\n");
@@ -81,6 +89,7 @@ int main(int argc, char *argv[]) {
                     execv(app_path, parsed_args.we_wordv);
                 }
                 else {
+                    ignore_close = 1;
                     sigsuspend(&wait_mask);
                     waitpid(pid, NULL, 0);
                 }
@@ -89,7 +98,7 @@ int main(int argc, char *argv[]) {
                 break;
         }
     } while (command != QUIT);
-    printf("Application closed.\n");
+    printf("\nApplication closed.\n");
     return 0;
 }
 
@@ -105,7 +114,7 @@ int read_app_args(int app_id, char *app_path, wordexp_t *parsed_args) {
     if (strlen(apps_args[app_id]) > 0) {
         char c;
         int i;
-        printf("Enter following args - %s:", apps_args[app_id]);
+        printf("Enter following args - %s: ", apps_args[app_id]);
         i = (int)strlen(args);
         args[i] = ' ';
         i++;
@@ -169,5 +178,12 @@ char *get_app_path(int app_id, char *main_path) {
     path[end_of_path_index + 1] = '\0';
     strcat(path, apps_paths[app_id]);
     return path;
+}
+
+void sigint_handler(int signum) {
+    if (ignore_close == 1)
+        ignore_close = 0;
+    else
+        exit(0);
 }
 
