@@ -23,17 +23,20 @@ char *get_app_path(int app_id, char *main_path);
 void sigchld_handler(int signum) {}
 void sigint_handler(int signum);
 
-int apps_num = 1;
+int apps_num = 2;
 char *apps_names[] = {
-        "Aircraft carrier"
+        "Aircraft carrier",
+        "Five philosophers"
 };
 
 char *apps_args[] = {
-        "N, K and a number of planes"
+        "N, K and a number of planes",
+        ""
 };
 
 char *apps_paths[] = {
-        "apps/aircraft_carrier/aircraft_main"
+        "apps/aircraft_carrier/aircraft_main",
+        "apps/philosophers/philosophers_main"
 };
 int ignore_close = 0;
 
@@ -80,6 +83,7 @@ int main(int argc, char *argv[]) {
                 }
                 printf ("Args ok.\n");
                 fflush(stdout);
+                ignore_close = 1;
                 pid_t pid = fork();
                 if (pid < 0) {
                     printf("Error while creating new process occurred.\n");
@@ -89,7 +93,6 @@ int main(int argc, char *argv[]) {
                     execv(app_path, parsed_args.we_wordv);
                 }
                 else {
-                    ignore_close = 1;
                     sigsuspend(&wait_mask);
                     waitpid(pid, NULL, 0);
                 }
