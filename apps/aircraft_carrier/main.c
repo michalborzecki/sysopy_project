@@ -19,6 +19,7 @@ void free_airstrip();
 
 int n, k, planes_num, on_aircraft_carrier = 0, available = 1;
 pthread_mutex_t aircraft_carrier_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_key_t aircraft_carrier_locked;
 pthread_cond_t start_cond = PTHREAD_COND_INITIALIZER;
 pthread_cond_t land_cond = PTHREAD_COND_INITIALIZER;
 int start_counter = 0, land_counter = 0;
@@ -42,6 +43,7 @@ int main(int argc, char *argv[]) {
         printf("Error while allocating memory occurred.\n");
         return 1;
     }
+    pthread_key_create(&aircraft_carrier_locked, NULL);
     // prepare mask for planes' threads (after that, only main thread will catch signals).
     sigset_t signal_mask;
     sigset_t old_signal_mask;
@@ -72,7 +74,9 @@ void *plane_thread(void *arg) {
             break;
         }
     }
-
+    int * airstrip_locked = malloc(sizeof(int));
+    *airstrip_locked = 0;
+    pthread_setspecific(aircraft_carrier_locked, airstrip_locked);
     unsigned int min_time = 500000, max_time = 1000000;
     while (1) {
         usleep(random_utime(min_time, max_time));
@@ -98,7 +102,9 @@ void free_airstrip() {
 }
 
 void start(int plane_id) {
+    int * airstrip_locked = pthread_getspecific(aircraft_carrier_locked);
     pthread_mutex_lock(&aircraft_carrier_mutex);
+    *airstrip_locked = 1;
     printf("%3d | Plane #%-3d is going to start.\n", on_aircraft_carrier, plane_id);
     start_counter++;
     while (!available || (on_aircraft_carrier < k && land_counter > 0)) {
@@ -110,13 +116,16 @@ void start(int plane_id) {
     printf("%3d | Plane #%-3d is starting.\n", on_aircraft_carrier, plane_id);
     available = 0;
     pthread_mutex_unlock(&aircraft_carrier_mutex);
+    *airstrip_locked = 0;
 
     usleep(START_LAND_TIME);
 
     pthread_mutex_lock(&aircraft_carrier_mutex);
+    *airstrip_locked = 1;
     available = 1;
     free_airstrip();
     pthread_mutex_unlock(&aircraft_carrier_mutex);
+    *airstrip_locked = 0;
 }
 
 void land(int plane_id) {
@@ -167,7 +176,9 @@ int read_args(int argc, char *argv[], int *n, int *k, int *planes_num) {
 }
 
 void thread_cleanup(void *args) {
-    pthread_mutex_unlock(&aircraft_carrier_mutex);
+    if (*(int *)pthread_getspecific(aircraft_carrier_locked) == 1)
+        pthread_mutex_unlock(&aircraft_carrier_mutex);
+    free(pthread_getspecific(aircraft_carrier_locked));
 }
 
 void cleanup() {
@@ -178,6 +189,7 @@ void cleanup() {
     pthread_cond_destroy(&start_cond);
     pthread_cond_destroy(&land_cond);
     pthread_mutex_destroy(&aircraft_carrier_mutex);
+    pthread_key_delete(aircraft_carrier_locked);
 }
 
 void sigint_handler(int signum) {
