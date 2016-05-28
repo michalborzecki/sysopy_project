@@ -23,26 +23,29 @@ char *get_app_path(int app_id, char *main_path);
 void sigchld_handler(int signum) {}
 void sigint_handler(int signum);
 
-int apps_num = 4;
+int apps_num = 5;
 char *apps_names[] = {
         "Aircraft carrier",
         "Five philosophers",
         "Producers and consumers",
-        "Readers and writers"
+        "Readers and writers",
+        "Table in a restaurant"
 };
 
 char *apps_args[] = {
         "N, K and a number of planes",
         "",
         "number of producers and number of consumers",
-        "number of readers and number of writers"
+        "number of readers and number of writers",
+        "number of pairs"
 };
 
 char *apps_paths[] = {
         "apps/aircraft_carrier/aircraft_main",
         "apps/philosophers/philosophers_main",
         "apps/consumer_producer/cp_main",
-        "apps/reader_writer/rw_main"
+        "apps/reader_writer/rw_main",
+        "apps/table/table_main"
 };
 int ignore_close = 0;
 
