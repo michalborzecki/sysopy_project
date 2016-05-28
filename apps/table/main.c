@@ -16,7 +16,7 @@ void release_table(int id);
 void *person_thread(void *arg);
 void thread_cleanup(void *args);
 
-int pairs_num, using_table = 0, available = 1;
+int pairs_num, using_table = 0;
 int *waiting_for_pair;
 pthread_mutex_t *waiting_for_pair_mutex;
 pthread_cond_t *waiting_for_pair_cond;
@@ -176,7 +176,6 @@ void thread_cleanup(void *args) {
     }
     if (*(int *)pthread_getspecific(table_locked_key) == 1)
         pthread_mutex_unlock(&waiting_for_table_mutex);
-    free(pthread_getspecific(table_locked_key));
     if (*(int *)pthread_getspecific(pair_locked_key) == 1)
         pthread_mutex_unlock(&waiting_for_pair_mutex[person_id % pairs_num]);
     free(pthread_getspecific(pair_locked_key));
