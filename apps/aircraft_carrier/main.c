@@ -129,7 +129,9 @@ void start(int plane_id) {
 }
 
 void land(int plane_id) {
+    int * airstrip_locked = pthread_getspecific(aircraft_carrier_locked);
     pthread_mutex_lock(&aircraft_carrier_mutex);
+    *airstrip_locked = 1;
     printf("%3d | Plane #%-3d is going to land.\n", on_aircraft_carrier, plane_id);
     land_counter++;
     while (!available || on_aircraft_carrier == n || (on_aircraft_carrier >= k && start_counter > 0)) {
@@ -141,13 +143,16 @@ void land(int plane_id) {
     printf("%3d | Plane #%-3d is landing.\n", on_aircraft_carrier, plane_id);
     available = 0;
     pthread_mutex_unlock(&aircraft_carrier_mutex);
+    *airstrip_locked = 0;
 
     usleep(START_LAND_TIME);
 
     pthread_mutex_lock(&aircraft_carrier_mutex);
+    *airstrip_locked = 1;
     available = 1;
     free_airstrip();
     pthread_mutex_unlock(&aircraft_carrier_mutex);
+    *airstrip_locked = 0;
 }
 
 int read_args(int argc, char *argv[], int *n, int *k, int *planes_num) {
