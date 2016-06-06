@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
     for (int i = 0; i < printers_num; i++)
-        printers[i] = 0;
+        printers[i] = -1;
     printers_available = printers_num;
     pthread_mutex_init(&reserve_printer_mutex, NULL);
     pthread_cond_init(&reserve_printer_cond, NULL);
@@ -102,7 +102,7 @@ int reserve_printer(int id) {
     }
     int printer_no = 0;
     for (int i = 0; i < printers_num; i++) {
-        if (printers[i] == 0) {
+        if (printers[i] == -1) {
             printer_no = i;
             break;
         }
@@ -119,9 +119,10 @@ void release_printer(int id, int printer_id) {
     int *reservation_locked = pthread_getspecific(reservation_locked_key);
     pthread_mutex_lock(&reserve_printer_mutex);
     *reservation_locked = 1;
-    printers[printer_id] = 0;
+    printers[printer_id] = -1;
     printers_available++;
     printf("%d released %d printer.\n", id, printer_id);
+    fflush(stdout);
     pthread_cond_signal(&reserve_printer_cond);
     pthread_mutex_unlock(&reserve_printer_mutex);
     *reservation_locked = 0;
